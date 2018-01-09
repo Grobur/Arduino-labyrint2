@@ -62,12 +62,18 @@ int servoMinX;
 int servoMaxY;
 int servoMinY;
 int poortWaarde; // Creëer variabele voor ofwel groene (Winst) ofwel rode (Verlies) poort
+int sTijd; // Creëer variabele om begintijd van een ronde in op te slaan voor scoremultiplier op einde
+int eTijd; // Creëer variabele om eindtijd van een ronde in op te slaan voor scoremultiplier op einde
+int eind; // Creëer variabele om de eindstand van een ronde in op te slaan (Winst of Verlies)
+long score; // Creëer variabele om score aan het einde van een ronde in op te slaan
+long vScore; // Creëer variabele om de score van de vorige ronde in op te slaan
+long tScore; // Creëer variabele om de totaalscore in op te slaan
 
 void setup() {
 
   lcd.init();
   lcd.backlight();
-  Serial.begin(9600);
+
   pinMode(drukknop, INPUT); // Stel de drukknop in als input
   ServoX.attach(3);
   ServoY.attach(5);
@@ -99,8 +105,7 @@ void loop() {
       lcd.print("Welkom bij het");
       lcd.setCursor(0, 1);
       lcd.print("Knikkerlabyrint!");
-      Serial.println(tijdNu);
-
+     
     }
 
     if (tijdNu - tijdNet == 4000) {
@@ -172,7 +177,9 @@ void loop() {
   neoA.show();
   neoB.show();
 
-  while (lichtArray[1] > 500 && lichtArray[2] > 700 && lichtArray[5] > 700) {
+  sTijd = millis();
+
+  while (lichtArray[1] > 400 && lichtArray[2] > 700 && lichtArray[5] > 700) {
 
     for (teller = 5; teller > 0; teller --) {
 
@@ -191,7 +198,7 @@ void loop() {
         powerup = random(0, 2); // Bepaal een willekeurige waarde voor de powerup (0 of 1)
 
         lcd.setCursor(0, 0);
-        lcd.print("Jouw Powerup:")
+        lcd.print("Jouw Powerup:");
         if (powerup == 0) { // Deze powerup keert de besturing van de servo's om
           servoMinX = 120;
           servoMaxX = 60;
@@ -206,33 +213,101 @@ void loop() {
           if (poortWaarde == 0) {
             neoA.setPixelColor(0, groenA);
             neoB.setPixelColor(0, roodB);
+            neoA.show();
+            neoB.show();
+            poortWaarde = 1;
           }
           else {
             neoA.setPixelColor(0, roodA);
             neoB.setPixelColor(0, groenB);
+            neoA.show();
+            neoB.show();
+            poortWaarde = 0;
           }
 
           lcd.setCursor(0, 1);
-          lcd.print("Andere poort!")
+          lcd.print("Andere poort!");
 
         }
       }
     }
-
   }
 
-  if (lichtArray < 500) {
+  eTijd = millis() - sTijd;
 
+  ServoX.write(90);
+  ServoY.write(90);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  if (lichtArray[1] <= 400) {
+    lcd.print("VERLIES!");
   }
 
-  knopstat = digitalRead(drukknop);
+  else if (lichtArray[2] <=700) {
+    if (poortWaarde == 0) {
+      lcd.print("OVERWINNING!");
+      eind = 1;
+    }
+    else {
+      lcd.print("FOUTE POORT!");
+      eind = 0;
+    }
+  }
+
+  else if (lichtArray[5] <= 700) {
+    if (poortWaarde == 0) {
+      lcd.print("FOUTE POORT!");
+      eind = 0;
+    }
+    else {
+      lcd.print("OVERWINNING!");
+      eind = 1;
+    }
+  }
+
+  delay(3000);
+  lcd.clear();
+  if (eind == 0) {
+    score = 0;
+  }
+
+  else {
+    score = 100 / eTijd + 100;
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print("Huidige score:");
+  lcd.setCursor(0, 1);
+  lcd.print(score);
+
+  tScore = score + vScore;
+  vScore = score;
+  
+  delay(3000);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Totale score:");
+  lcd.setCursor(0, 1);
+  lcd.print(tScore);
+
+  delay(3000);
+
+  lcd.clear();
+  
+  while (knopstat == LOW) {
+    knopstat = digitalRead(drukknop);
+    lcd.setCursor(0,0);
+    lcd.print("Druk om verder");
+    lcd.setCursor(0,1);
+    lcd.print("te gaan!");
+  }  
+
+  while (knopstat == HIGH) {
+    knopstat = digitalRead(drukknop);
+  }
+  
   delay(50);
+  knopstat = digitalRead(drukknop);
   tijdNet = millis();
 }
-
-
-
-
-
-
-
