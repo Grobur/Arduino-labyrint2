@@ -44,7 +44,7 @@ Servo ServoX;
 Servo ServoY;
 
 int sensorArray[] = {A3, A7, A8, A9, A10}; // Definieer een array voor de inputs van de lichtsensoren
-int lichtArray[] = {1, 2, 3, 4, 5}; // Definieer een array voor de waarden van de lichtsensoren
+int lichtArray[5] = {}; // Definieer een array voor de waarden van de lichtsensoren
 int licht;  // Creëer een variabele om de uitgelezen waarde van een lichtsensor te bewaren
 int teller; // Creëer een variabele om als teller voor for loops te gebruiken
 int joyWaardeX;
@@ -105,7 +105,7 @@ void loop() {
       lcd.print("Welkom bij het");
       lcd.setCursor(0, 1);
       lcd.print("Knikkerlabyrint!");
-     
+
     }
 
     if (tijdNu - tijdNet == 4000) {
@@ -177,58 +177,60 @@ void loop() {
   neoA.show();
   neoB.show();
 
+  ServoX.write(90);
+  ServoY.write(90);
+
+  arrayChecker();
+  
   sTijd = millis();
 
-  while (lichtArray[1] > 400 && lichtArray[2] > 700 && lichtArray[5] > 700) {
+  while (lichtArray[1] > 400 && lichtArray[2] > 400 && lichtArray[5] > 400) {
 
-    for (teller = 5; teller > 0; teller --) {
+    arrayChecker();
 
-      lichtArray[teller] = analogRead(sensorArray[teller]);
+    joyWaardeX = analogRead(joyX);
+    joyWaardeX = map(joyWaardeX, 8, 890, servoMinX, servoMaxX);
+    ServoX.write(joyWaardeX);
 
-      joyWaardeX = analogRead(joyX);
-      joyWaardeX = map(joyWaardeX, 8, 890, servoMinX, servoMaxX);
-      ServoX.write(joyWaardeX);
+    joyWaardeY = analogRead(joyY);
+    joyWaardeY = map(joyWaardeY, 8, 894, servoMinY, servoMaxY);
+    ServoY.write(joyWaardeY);
 
-      joyWaardeY = analogRead(joyY);
-      joyWaardeY = map(joyWaardeY, 8, 894, servoMinY, servoMaxY);
-      ServoY.write(joyWaardeY);
+    if (lichtArray[3] < 400 || lichtArray[4] < 400) {
 
-      if (lichtArray[3] < 700 || lichtArray[4] < 700) {
+      powerup = random(0, 2); // Bepaal een willekeurige waarde voor de powerup (0 of 1)
 
-        powerup = random(0, 2); // Bepaal een willekeurige waarde voor de powerup (0 of 1)
+      lcd.setCursor(0, 0);
+      lcd.print("Jouw Powerup:");
+      if (powerup == 0) { // Deze powerup keert de besturing van de servo's om
+        servoMinX = 120;
+        servoMaxX = 60;
+        servoMinY = 120;
+        servoMaxY = 60;
+        lcd.setCursor(0, 1);
+        lcd.print("Omkering!");
+      }
 
-        lcd.setCursor(0, 0);
-        lcd.print("Jouw Powerup:");
-        if (powerup == 0) { // Deze powerup keert de besturing van de servo's om
-          servoMinX = 120;
-          servoMaxX = 60;
-          servoMinY = 120;
-          servoMaxY = 60;
-          lcd.setCursor(0, 1);
-          lcd.print("Omkering!");
+      else { // Deze powerup verandert de poorten van kleur, zodat de speler de bal
+        // naar de tegenovergestelde poort moet bewegen
+        if (poortWaarde == 0) {
+          neoA.setPixelColor(0, groenA);
+          neoB.setPixelColor(0, roodB);
+          neoA.show();
+          neoB.show();
+          poortWaarde = 1;
+        }
+        else {
+          neoA.setPixelColor(0, roodA);
+          neoB.setPixelColor(0, groenB);
+          neoA.show();
+          neoB.show();
+          poortWaarde = 0;
         }
 
-        else { // Deze powerup verandert de poorten van kleur, zodat de speler de bal
-          // naar de tegenovergestelde poort moet bewegen
-          if (poortWaarde == 0) {
-            neoA.setPixelColor(0, groenA);
-            neoB.setPixelColor(0, roodB);
-            neoA.show();
-            neoB.show();
-            poortWaarde = 1;
-          }
-          else {
-            neoA.setPixelColor(0, roodA);
-            neoB.setPixelColor(0, groenB);
-            neoA.show();
-            neoB.show();
-            poortWaarde = 0;
-          }
+        lcd.setCursor(0, 1);
+        lcd.print("Andere poort!");
 
-          lcd.setCursor(0, 1);
-          lcd.print("Andere poort!");
-
-        }
       }
     }
   }
@@ -243,7 +245,7 @@ void loop() {
     lcd.print("VERLIES!");
   }
 
-  else if (lichtArray[2] <=700) {
+  else if (lichtArray[2] <= 400) {
     if (poortWaarde == 0) {
       lcd.print("OVERWINNING!");
       eind = 1;
@@ -254,7 +256,7 @@ void loop() {
     }
   }
 
-  else if (lichtArray[5] <= 700) {
+  else if (lichtArray[5] <= 400) {
     if (poortWaarde == 0) {
       lcd.print("FOUTE POORT!");
       eind = 0;
@@ -282,7 +284,7 @@ void loop() {
 
   tScore = score + vScore;
   vScore = score;
-  
+
   delay(3000);
 
   lcd.clear();
@@ -294,20 +296,29 @@ void loop() {
   delay(3000);
 
   lcd.clear();
-  
+
   while (knopstat == LOW) {
     knopstat = digitalRead(drukknop);
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("Druk om verder");
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("te gaan!");
-  }  
+  }
 
   while (knopstat == HIGH) {
     knopstat = digitalRead(drukknop);
   }
-  
+
   delay(50);
   knopstat = digitalRead(drukknop);
   tijdNet = millis();
+}
+
+void arrayChecker() {
+
+  for (teller = 4; teller >= 0; teller --) {
+
+    lichtArray[teller] = analogRead(sensorArray[teller]);
+  }
+
 }
